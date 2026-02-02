@@ -2,6 +2,11 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 
+const PIXEL_SAMPLE_SIZE = 4; // Sample every 4th pixel for performance
+const ANIMATION_DURATION = 5000; // 5 seconds
+const CANVAS_SIZE = 400;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB max file size
+
 interface PixelShuffleCanvasProps {
   sourceImageUrl: string;
   isAnimating: boolean;
@@ -41,13 +46,22 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
   // Create a procedurally generated Babar Azam target image
   function createBabarAzamImage(): ImageData {
     if (typeof document === 'undefined') {
-      // Return empty ImageData for SSR
-      return new ImageData(400, 400);
+      // Return valid ImageData for SSR with default pixel data
+      const data = new Uint8ClampedArray(CANVAS_SIZE * CANVAS_SIZE * 4);
+      // Fill with default dark green color (Pakistan flag)
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = 1;     // R
+        data[i + 1] = 65; // G
+        data[i + 2] = 28; // B
+        data[i + 3] = 255; // A
+      }
+      return new ImageData(data, CANVAS_SIZE, CANVAS_SIZE);
     }
+    
     const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext('2d')!;
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
+    const ctx = canvas.getContext('2d')!;;
 
     // Background - Pakistan flag inspired green
     ctx.fillStyle = '#01411C';
@@ -158,7 +172,7 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
     ctx.strokeText('56', 200, 280);
     ctx.fillText('56', 200, 280);
 
-    return ctx.getImageData(0, 0, 400, 400);
+    return ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   }
 
   useEffect(() => {
@@ -178,21 +192,20 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
     sourceImg.crossOrigin = 'anonymous';
     sourceImg.onload = () => {
       // Set canvas size
-      canvas.width = 400;
-      canvas.height = 400;
+      canvas.width = CANVAS_SIZE;
+      canvas.height = CANVAS_SIZE;
 
       // Draw source image
-      ctx.drawImage(sourceImg, 0, 0, 400, 400);
-      const sourceImageData = ctx.getImageData(0, 0, 400, 400);
+      ctx.drawImage(sourceImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      const sourceImageData = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
       // Create pixel array
       const pixelArray: Pixel[] = [];
-      const pixelSize = 4; // Sample every 4th pixel for performance
       
-      for (let y = 0; y < 400; y += pixelSize) {
-        for (let x = 0; x < 400; x += pixelSize) {
-          const sourceIndex = (y * 400 + x) * 4;
-          const targetIndex = (y * 400 + x) * 4;
+      for (let y = 0; y < CANVAS_SIZE; y += PIXEL_SAMPLE_SIZE) {
+        for (let x = 0; x < CANVAS_SIZE; x += PIXEL_SAMPLE_SIZE) {
+          const sourceIndex = (y * CANVAS_SIZE + x) * 4;
+          const targetIndex = (y * CANVAS_SIZE + x) * 4;
 
           // Random initial position for shuffle effect
           const randomAngle = Math.random() * Math.PI * 2;
@@ -235,7 +248,6 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
     if (!ctx) return;
 
     startTimeRef.current = Date.now();
-    const ANIMATION_DURATION = 5000; // 5 seconds
 
     const animate = () => {
       const elapsed = Date.now() - startTimeRef.current;
@@ -266,7 +278,7 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
 
         // Draw pixel
         ctx.fillStyle = `rgba(${currentR}, ${currentG}, ${currentB}, ${currentA / 255})`;
-        ctx.fillRect(currentX, currentY, 4, 4);
+        ctx.fillRect(currentX, currentY, PIXEL_SAMPLE_SIZE, PIXEL_SAMPLE_SIZE);
       });
 
       if (progress < 1) {

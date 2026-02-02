@@ -6,18 +6,40 @@ import PixelShuffleCanvas from '@/components/PixelShuffleCanvas';
 export default function PixelShufflePage() {
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setSourceImage(event.target?.result as string);
-        setIsAnimating(false);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Reset error state
+    setError(null);
+
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
     }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSourceImage(event.target?.result as string);
+      setIsAnimating(false);
+    };
+    reader.onerror = () => {
+      setError('Failed to read the image file. Please try again.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleStartAnimation = () => {
@@ -29,6 +51,7 @@ export default function PixelShufflePage() {
   const handleReset = () => {
     setSourceImage(null);
     setIsAnimating(false);
+    setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -62,6 +85,11 @@ export default function PixelShufflePage() {
                 </svg>
                 <h2>Upload Your Image</h2>
                 <p>Choose an image to begin the pixel shuffle transformation</p>
+                {error && (
+                  <div className="error-message">
+                    ⚠️ {error}
+                  </div>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -187,6 +215,16 @@ export default function PixelShufflePage() {
           color: #aaaaaa;
           margin-bottom: 2rem;
           font-size: 1.125rem;
+        }
+
+        .error-message {
+          background: rgba(255, 0, 0, 0.1);
+          border: 2px solid rgba(255, 0, 0, 0.5);
+          border-radius: 10px;
+          padding: 1rem;
+          margin: 1rem 0;
+          color: #ff6b6b;
+          font-weight: 600;
         }
 
         .file-input {

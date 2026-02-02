@@ -17,8 +17,8 @@ export default function HomePage() {
             <div className="card-icon">🎮</div>
             <h2>World Crisis Game</h2>
             <p>
-              A thrilling story-driven game where heroes must save humanity from nuclear
-              annihilation. Race against time in this epic adventure.
+              A thrilling story-driven game. Save humanity from nuclear annihilation
+              in this epic adventure.
             </p>
             <div className="card-button">Play Now →</div>
           </Link>
