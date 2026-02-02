@@ -36,11 +36,14 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const animationFrameRef = useRef<number>();
   const startTimeRef = useRef<number>(0);
-
-  const TARGET_IMAGE_DATA = createBabarAzamImage();
+  const targetImageDataRef = useRef<ImageData | null>(null);
 
   // Create a procedurally generated Babar Azam target image
   function createBabarAzamImage(): ImageData {
+    if (typeof document === 'undefined') {
+      // Return empty ImageData for SSR
+      return new ImageData(400, 400);
+    }
     const canvas = document.createElement('canvas');
     canvas.width = 400;
     canvas.height = 400;
@@ -165,6 +168,11 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Initialize target image data if not already done
+    if (!targetImageDataRef.current) {
+      targetImageDataRef.current = createBabarAzamImage();
+    }
+
     // Load source image
     const sourceImg = new Image();
     sourceImg.crossOrigin = 'anonymous';
@@ -201,10 +209,10 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
             g: sourceImageData.data[sourceIndex + 1],
             b: sourceImageData.data[sourceIndex + 2],
             a: sourceImageData.data[sourceIndex + 3],
-            targetR: TARGET_IMAGE_DATA.data[targetIndex],
-            targetG: TARGET_IMAGE_DATA.data[targetIndex + 1],
-            targetB: TARGET_IMAGE_DATA.data[targetIndex + 2],
-            targetA: TARGET_IMAGE_DATA.data[targetIndex + 3],
+            targetR: targetImageDataRef.current!.data[targetIndex],
+            targetG: targetImageDataRef.current!.data[targetIndex + 1],
+            targetB: targetImageDataRef.current!.data[targetIndex + 2],
+            targetA: targetImageDataRef.current!.data[targetIndex + 3],
             velocityX: 0,
             velocityY: 0,
             progress: 0,
@@ -265,7 +273,9 @@ const PixelShuffleCanvas: React.FC<PixelShuffleCanvasProps> = ({
         animationFrameRef.current = requestAnimationFrame(animate);
       } else {
         // Animation complete, draw final target image
-        ctx.putImageData(TARGET_IMAGE_DATA, 0, 0);
+        if (targetImageDataRef.current) {
+          ctx.putImageData(targetImageDataRef.current, 0, 0);
+        }
         onAnimationComplete();
       }
     };
